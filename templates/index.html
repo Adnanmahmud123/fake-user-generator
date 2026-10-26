@@ -1,0 +1,400 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fake User Generator</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6fa;
+            color: #202636;
+        }
+
+        header {
+            background: #b91c1c;
+            color: white;
+            padding: 28px 20px;
+        }
+
+        header,
+        main {
+            padding-left: max(20px, calc((100% - 1200px) / 2));
+            padding-right: max(20px, calc((100% - 1200px) / 2));
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+        }
+
+        header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        main {
+            padding-top: 25px;
+            padding-bottom: 40px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 22px;
+            box-shadow: 0 3px 15px #1522380c;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit,
+                minmax(190px, 1fr)
+            );
+            gap: 16px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input,
+        select,
+        button {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d5dae3;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: 2px solid #fecaca;
+            border-color: #b91c1c;
+        }
+
+        button {
+            cursor: pointer;
+            border: 0;
+            color: white;
+            background: #b91c1c;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #991b1b;
+        }
+
+        button:focus-visible {
+            outline: 3px solid #fca5a5;
+            outline-offset: 2px;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .actions button {
+            width: auto;
+            min-width: 150px;
+        }
+
+        .next {
+            background: #334155;
+        }
+
+        .next:hover {
+            background: #1e293b;
+        }
+
+        .error {
+            padding: 13px;
+            border-radius: 7px;
+            color: #991b1b;
+            background: #fee2e2;
+            overflow-wrap: anywhere;
+        }
+
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 11px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: bold;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .count {
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .empty-value {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            color: #64748b;
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .panel {
+                padding: 15px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .actions button {
+                width: 100%;
+            }
+
+            header {
+                padding-top: 22px;
+                padding-bottom: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Fake User Generator</h1>
+        <p>
+            Generate deterministic fictional profiles powered by
+            MySQL stored procedures.
+        </p>
+    </header>
+
+    <main>
+        <section class="panel">
+            <h2>Generation Settings</h2>
+
+            <form method="post" id="generator-form">
+                <div class="form-grid">
+                    <div>
+                        <label for="locale">Locale</label>
+                        <select id="locale" name="locale" required>
+                            {% for item in locales %}
+                            <option
+                                value="{{ item.locale_code }}"
+                                {% if form_data.locale == item.locale_code %}selected{% endif %}
+                            >
+                                {{ item.language_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="seed">Seed</label>
+                        <input
+                            id="seed"
+                            name="seed"
+                            type="number"
+                            min="0"
+                            step="1"
+                            required
+                            value="{{ form_data.seed }}"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="batch_index">Batch index</label>
+                        <input
+                            id="batch_index"
+                            name="batch_index"
+                            type="number"
+                            min="0"
+                            step="1"
+                            required
+                            value="{{ form_data.batch_index }}"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="batch_size">Batch size (1-1000)</label>
+                        <input
+                            id="batch_size"
+                            name="batch_size"
+                            type="number"
+                            min="1"
+                            max="1000"
+                            step="1"
+                            required
+                            value="{{ form_data.batch_size }}"
+                        >
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button type="submit">
+                        Generate Users
+                    </button>
+
+                    <button
+                        type="button"
+                        class="next"
+                        id="next-batch"
+                    >
+                        Next Batch →
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        {% if error %}
+        <section class="panel" role="alert">
+            <p class="error">{{ error }}</p>
+        </section>
+        {% endif %}
+
+        {% if users %}
+        <section class="panel">
+            <h2>Generated Profiles</h2>
+
+            <p class="count">
+                Showing {{ users|length }} users |
+                Locale: {{ form_data.locale }} |
+                Seed: {{ form_data.seed }} |
+                Batch: {{ form_data.batch_index }}
+            </p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Title</th>
+                            <th>Street Address</th>
+                            <th>City</th>
+                            <th>Region</th>
+                            <th>Postal Code</th>
+                            <th>Latitude</th>
+                            <th>Longitude</th>
+                            <th>Birth Date</th>
+                            <th>Height (cm)</th>
+                            <th>Weight (kg)</th>
+                            <th>Eye Color</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.full_name | default('', true) }}</td>
+                            <td>{{ user.title | default('', true) }}</td>
+                            <td>{{ user.street_address | default('', true) }}</td>
+                            <td>{{ user.city | default('', true) }}</td>
+                            <td>{{ user.region_name | default('', true) }}</td>
+                            <td>{{ user.postal_code | default('', true) }}</td>
+
+                            <td>
+                                {% if user.latitude is not none %}
+                                    {{ "%.5f"|format(user.latitude|float) }}
+                                {% else %}
+                                    <span class="empty-value">—</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if user.longitude is not none %}
+                                    {{ "%.5f"|format(user.longitude|float) }}
+                                {% else %}
+                                    <span class="empty-value">—</span>
+                                {% endif %}
+                            </td>
+
+                            <td>{{ user.birth_date | default('', true) }}</td>
+                            <td>{{ user.height_cm | default('', true) }}</td>
+                            <td>{{ user.weight_kg | default('', true) }}</td>
+                            <td>{{ user.eye_color | default('', true) }}</td>
+                            <td>{{ user.phone | default('', true) }}</td>
+                            <td>{{ user.email | default('', true) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <footer>
+        Fake User Generator · Flask + MySQL
+    </footer>
+
+    <script>
+        const generatorForm = document.getElementById("generator-form");
+        const batchInput = document.getElementById("batch_index");
+        const nextBatchButton = document.getElementById("next-batch");
+
+        nextBatchButton.addEventListener("click", function () {
+            const currentIndex = Number(batchInput.value);
+
+            if (
+                !Number.isSafeInteger(currentIndex) ||
+                currentIndex < 0
+            ) {
+                alert("Enter a valid non-negative batch index.");
+                return;
+            }
+
+            if (currentIndex >= Number.MAX_SAFE_INTEGER) {
+                alert("Batch index is too large.");
+                return;
+            }
+
+            batchInput.value = String(currentIndex + 1);
+
+            if (generatorForm.reportValidity()) {
+                generatorForm.requestSubmit();
+            }
+        });
+    </script>
+</body>
+</html>
