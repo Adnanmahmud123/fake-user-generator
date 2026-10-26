@@ -37,13 +37,12 @@ BEGIN
     DECLARE v_weight DECIMAL(5,2);
 
     DECLARE v_user_index BIGINT;
-    DECLARE v_rng BIGINT UNSIGNED;
     DECLARE v_offset INT;
     DECLARE v_count INT;
     DECLARE v_height_sum DOUBLE;
     DECLARE v_weight_sum DOUBLE;
 
-    -- Validate inputs.
+    -- Validate input parameters.
     IF p_batch_size IS NULL
        OR p_batch_size < 1
        OR p_batch_size > 1000 THEN
@@ -105,11 +104,7 @@ BEGIN
         SET v_user_index =
             p_batch_index * p_batch_size + i;
 
-        SET v_rng = CRC32(
-            CONCAT(p_locale, ':', p_seed, ':', v_user_index)
-        );
-
-        -- Select a name and its gender.
+        -- Select name and gender.
         SET v_offset = MOD(
             CRC32(CONCAT(
                 p_locale, ':', p_seed, ':',
@@ -148,7 +143,7 @@ BEGIN
             SET MESSAGE_TEXT = 'No suitable title found for name gender';
         END IF;
 
-        -- Select a compatible title.
+        -- Select compatible title.
         SET v_offset = MOD(
             CRC32(CONCAT(
                 p_locale, ':', p_seed, ':',
@@ -303,8 +298,7 @@ BEGIN
                         )),
                         10000000
                     ),
-                    7,
-                    '0'
+                    7, '0'
                 )
             ),
             CONCAT(
@@ -317,8 +311,7 @@ BEGIN
                         )),
                         10000000
                     ),
-                    7,
-                    '0'
+                    7, '0'
                 )
             )
         );
@@ -342,7 +335,7 @@ BEGIN
             )) / 4294967296.0
         ) * 360 - 180;
 
-        -- Deterministic birth date.
+        -- Generate deterministic birth date.
         SET v_birth = DATE_ADD(
             '1970-01-01',
             INTERVAL MOD(
@@ -354,7 +347,7 @@ BEGIN
             ) DAY
         );
 
-        -- Generate deterministic samples for height and weight.
+        -- Generate pseudo-random height and weight samples.
         SET j = 0;
         SET v_height_sum = 0;
         SET v_weight_sum = 0;
@@ -371,8 +364,7 @@ BEGIN
                             ), 256),
                             1, 8
                         ),
-                        16,
-                        10
+                        16, 10
                     ) AS DECIMAL(20,0)
                 ) / 4294967295.0;
 
@@ -386,8 +378,7 @@ BEGIN
                             ), 256),
                             1, 8
                         ),
-                        16,
-                        10
+                        16, 10
                     ) AS DECIMAL(20,0)
                 ) / 4294967295.0;
 
@@ -416,7 +407,7 @@ BEGIN
             2
         );
 
-        -- Insert or update generated user.
+        -- Insert or update the generated user.
         INSERT INTO generated_users (
             locale_code,
             seed_value,
@@ -492,7 +483,7 @@ BEGIN
         SET i = i + 1;
     END WHILE;
 
-    -- FIX: Return only the requested number of users.
+    -- FIX: Return only the requested number of records.
     SELECT *
     FROM generated_users
     WHERE locale_code = p_locale
