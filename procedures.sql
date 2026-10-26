@@ -1,4 +1,4 @@
-
+```sql
 USE fake_user_generator;
 
 DROP PROCEDURE IF EXISTS generate_user_batch;
@@ -265,7 +265,7 @@ BEGIN
             v_title, ' ', v_first, ' ', v_last
         );
 
-        -- Construct a five-digit postal code.
+        -- Construct postal code.
         SET v_postal = CONCAT(
             v_prefix,
             LPAD(
@@ -323,7 +323,7 @@ BEGIN
             )
         );
 
-        -- Uniform-sphere latitude and longitude.
+        -- Generate latitude and longitude.
         SET v_lat = DEGREES(
             ASIN(
                 2 * (
@@ -354,8 +354,7 @@ BEGIN
             ) DAY
         );
 
-        -- Generate 12 deterministic pseudo-random samples.
-        -- SHA-256 helps reduce correlations between nearby CRC32 inputs.
+        -- Generate deterministic samples for height and weight.
         SET j = 0;
         SET v_height_sum = 0;
         SET v_weight_sum = 0;
@@ -395,8 +394,6 @@ BEGIN
             SET j = j + 1;
         END WHILE;
 
-        -- Approximate normal distributions.
-        -- Target mean height: 170 cm; approximate SD: 4.5 cm.
         SET v_height = ROUND(
             LEAST(
                 205,
@@ -408,7 +405,6 @@ BEGIN
             2
         );
 
-        -- Target mean weight: 75 kg; approximate SD: 13 kg.
         SET v_weight = ROUND(
             LEAST(
                 160,
@@ -420,7 +416,7 @@ BEGIN
             2
         );
 
-        -- Insert generated user or update the existing record.
+        -- Insert or update generated user.
         INSERT INTO generated_users (
             locale_code,
             seed_value,
@@ -496,14 +492,18 @@ BEGIN
         SET i = i + 1;
     END WHILE;
 
-    -- Return this batch.
+    -- FIX: Return only the requested number of users.
     SELECT *
     FROM generated_users
     WHERE locale_code = p_locale
       AND seed_value = p_seed
       AND batch_index = p_batch_index
-    ORDER BY user_index;
+      AND user_index >= p_batch_index * p_batch_size
+      AND user_index < (p_batch_index + 1) * p_batch_size
+    ORDER BY user_index
+    LIMIT p_batch_size;
 
 END$$
 
 DELIMITER ;
+```
