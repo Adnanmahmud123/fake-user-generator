@@ -100,7 +100,7 @@ Use the correct MySQL executable path if MySQL is installed elsewhere.
 
 ### 7. Configure environment variables
 
-Create a local `.env` file in the project root:
+Copy `.env.example` to `.env` in the project root, then enter your actual database password. For Aiven, use the schema that contains `generate_user_batch` (this project SQL creates `fake_user_generator`):
 
 ```dotenv
 DB_HOST=127.0.0.1
@@ -191,3 +191,42 @@ To add a locale, add the locale record and its required lookup data, then confir
 - Do not publish database passwords.
 - Do not expose MySQL directly to the public internet.
 - For production deployment, configure environment variables and database permissions securely.
+
+
+## Aiven troubleshooting
+
+- Keep exactly one configuration block in `.env`. Duplicate entries are confusing and can cause you to connect to a different database than intended.
+- The SQL files create and use the `fake_user_generator` schema. Set `DB_NAME=fake_user_generator` if the tables and procedure were imported there.
+- `/health` checks both the database connection and whether `generate_user_batch` exists in the selected schema.
+- Keep your actual `.env` and database password private. The example file contains no password.
+
+
+## Verify the live database connection
+
+After filling in `.env` and installing `requirements.txt`, run:
+
+```powershell
+python check_setup.py
+```
+
+This checks the selected schema, the stored procedure, required tables, and small test batches for both locales. It creates test rows in `generated_users`. Do not share your `.env` or password when asking for help.
+
+
+## Important: sync the MySQL stored procedure
+
+The website does not implement profile generation in Python. It calls the MySQL `generate_user_batch` stored procedure. If the website and Workbench show different height/weight/postal values for the same locale, seed, batch, and user index, the stored procedure installed on the server may be an older version.
+
+1. Open `procedures.sql` in MySQL Workbench.
+2. Make sure this file's `USE fake_user_generator;` matches the schema you intend to use.
+3. Execute the entire script (lightning bolt). It drops and recreates `generate_user_batch`.
+4. Refresh Schemas, then run:
+
+```sql
+CALL generate_user_batch('en_US', 12345, 0, 3);
+SELECT user_index, full_name, postal_code, latitude, longitude, height_cm, weight_kg
+FROM generated_users
+WHERE locale_code = 'en_US' AND seed_value = 12345 AND batch_index = 0
+ORDER BY user_index;
+```
+
+5. Restart Flask and generate the same batch again. The values for each user index should match the stored rows. The coordinates are intentionally sampled globally on a uniform sphere, so they are not expected to match the listed city.
